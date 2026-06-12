@@ -226,9 +226,14 @@ export default function FlexiFilterTable() {
                   <TableCell>{row.companyPosition || "-"}</TableCell>
                   <TableCell>
                     <Badge
-                      variant={row.onERMIS === "Yes" ? "secondary" : "outline"}
+                      variant="outline"
+                      className={
+                        row.onERMIS === "Yes"
+                          ? "bg-success text-white border-transparent"
+                          : "bg-destructive text-white border-transparent"
+                      }
                     >
-                      {row.onERMIS || "-"}
+                      {row.onERMIS}
                     </Badge>
                   </TableCell>
                   <TableCell>{row.contactPerson || "-"}</TableCell>
@@ -236,7 +241,11 @@ export default function FlexiFilterTable() {
                     <div className="flex flex-wrap gap-1.5">
                       {row.previousCourses?.length > 0 ? (
                         row.previousCourses.map((course) => (
-                          <Badge key={course} variant="outline">
+                          <Badge
+                            key={course}
+                            variant="outline"
+                            className="bg-accent-foreground"
+                          >
                             {course}
                           </Badge>
                         ))
@@ -249,7 +258,11 @@ export default function FlexiFilterTable() {
                     <div className="flex flex-wrap gap-1.5">
                       {row.notifications?.length > 0 ? (
                         row.notifications.map((notification) => (
-                          <Badge key={notification} variant="secondary">
+                          <Badge
+                            key={notification}
+                            variant="outline"
+                            className="bg-accent-foreground"
+                          >
                             {notification}
                           </Badge>
                         ))
