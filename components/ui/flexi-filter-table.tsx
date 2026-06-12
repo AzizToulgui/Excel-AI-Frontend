@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,8 +43,8 @@ export default function FlexiFilterTable() {
   const [city, setCity] = useState("All");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const queryClient = useQueryClient();
 
-  // Backend Pagination
   const { data, isLoading, isError } = useQuery<ApiResponse>({
     queryKey: ["users", page],
     queryFn: () => api.getUsers(page, pageSize),
@@ -53,7 +53,6 @@ export default function FlexiFilterTable() {
   const rows = data?.data || [];
   const meta = data?.meta || { total: 0, totalPages: 1 };
 
-  // Client-side filtering (on current page data)
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
       if (ermis !== "All" && row.onERMIS !== ermis) return false;
@@ -100,6 +99,14 @@ export default function FlexiFilterTable() {
     setPage(1);
   };
 
+  const handleDeleteAllUsers = async () => {
+    try {
+      await api.deleteAllUsers();
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    } catch (error) {
+      console.error("Failed to delete users:", error);
+    }
+  };
   return (
     <section className="overflow-hidden rounded-3xl border border-border/70 bg-background/85 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.14)] backdrop-blur">
       <div className="flex flex-col gap-3 border-b border-border/70 p-5 sm:flex-row sm:flex-wrap sm:items-center">
@@ -147,14 +154,15 @@ export default function FlexiFilterTable() {
         </Select>
 
         <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
-          <Badge variant="outline">{meta.total} total users</Badge>
-          <Badge variant="outline">
-            {filteredRows.reduce(
-              (count, row) => count + (row.notifications?.length || 0),
-              0,
-            )}{" "}
-            notifications
-          </Badge>
+          <Button
+            onClick={handleDeleteAllUsers}
+            type="button"
+            variant="outline"
+            className="text-primary"
+            size="sm"
+          >
+            Delete All Users
+          </Button>
         </div>
       </div>
 
@@ -255,16 +263,10 @@ export default function FlexiFilterTable() {
             )}
           </TableBody>
 
-          <TableFooter className="sticky bottom-0 z-10 bg-background/95 backdrop-blur border-t">
+          <TableFooter className="sticky bottom-0 z-10 border-t bg-background/95 backdrop-blur">
             <TableRow>
-              <TableCell colSpan={6}>Total imported users</TableCell>
-              <TableCell>{meta.total}</TableCell>
-              <TableCell colSpan={2}>
-                <div className="flex items-center justify-end gap-3">
-                  <span className="text-sm text-muted-foreground">
-                    {startRow}-{endRow} of {meta.total}
-                  </span>
-
+              <TableCell colSpan={9} className="p-0">
+                <div className="flex items-center justify-between px-4 py-3">
                   <Button
                     type="button"
                     variant="outline"
@@ -274,6 +276,11 @@ export default function FlexiFilterTable() {
                   >
                     Previous
                   </Button>
+
+                  <span className="text-sm text-muted-foreground">
+                    {startRow}-{endRow} of {meta.total} • Page {currentPage} /{" "}
+                    {totalPages}
+                  </span>
 
                   <Button
                     type="button"

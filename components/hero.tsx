@@ -4,8 +4,6 @@ import FileUpload from "./ui/file-upload";
 import Typewriter from "./ui/typewriter";
 
 export function Hero() {
-  const [uploadKey, setUploadKey] = useState(0);
-
   return (
     <section className="relative min-h-screen pb-8">
       {/* Background image */}
@@ -35,10 +33,7 @@ export function Hero() {
             />
           </span>
         </h1>
-        <FileUpload
-          key={uploadKey}
-          onSuccess={() => setUploadKey((prev) => prev + 1)}
-        />
+        <FileUpload onSuccess={() => {}} />
       </div>
     </section>
   );

@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileSpreadsheet, Upload } from "lucide-react";
+import { FileSpreadsheet, Upload, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   formatFileSize,
   parseSpreadsheetFile,
@@ -29,15 +30,7 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
     mutationFn: api.saveUsers,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-
-      setFileInfo(null);
-      setError(null);
-
       onSuccess?.();
-
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
     },
   });
 
@@ -46,8 +39,6 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
   ) => {
     const file = event.target.files?.[0];
 
-    event.target.value = "";
-
     if (!file) return;
 
     setIsImporting(true);
@@ -55,13 +46,10 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
 
     try {
       const result = await parseSpreadsheetFile(file);
-
       setFileInfo(result.fileInfo);
-
       saveMutation.mutate(result.rows);
     } catch (uploadError) {
       setFileInfo(null);
-
       setError(
         uploadError instanceof Error
           ? uploadError.message
@@ -69,12 +57,34 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
       );
     } finally {
       setIsImporting(false);
+
+      // Clear the input value so the same file can be uploaded again if needed
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleClearFile = () => {
+    setFileInfo(null);
+    setError(null);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    // Trigger file input click to try again
+    if (inputRef.current) {
+      inputRef.current.click();
     }
   };
 
   return (
     <div className="p-4 sm:p-5 lg:p-6">
-      {!fileInfo && (
+      {/* Upload button - only show when no file is selected */}
+      {!fileInfo && !isImporting && (
         <div className="flex justify-center">
           <label
             htmlFor="spreadsheet-upload"
@@ -99,8 +109,28 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
         </div>
       )}
 
-      {fileInfo && (
+      {/* Loading state */}
+      {isImporting && (
         <div className="mt-6 rounded-3xl border border-white/10 bg-white/10 p-5 shadow-2xl backdrop-blur-xl">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 animate-pulse items-center justify-center rounded-2xl border border-white/10 bg-white/20">
+              <FileSpreadsheet className="h-6 w-6 text-white" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white sm:text-base">
+                Reading spreadsheet...
+              </p>
+              <p className="mt-1 text-xs text-white/70 sm:text-sm">
+                Processing and normalizing data
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* File info display */}
+      {fileInfo && !isImporting && (
+        <div className="mt-6 rounded-3xl border border-white/10 bg-white/10 p-5 shadow-2xl backdrop-blur-xl transition-all duration-300">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/10">
               <FileSpreadsheet className="h-6 w-6 text-white" />
@@ -114,7 +144,7 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
 
                 <Badge
                   variant="secondary"
-                  className="border border-white/10 bg-white/10 text-white"
+                  className="border border-white/10 bg-green-500/20 text-white"
                 >
                   Imported
                 </Badge>
@@ -124,19 +154,45 @@ export default function FileUpload({ onSuccess }: FileUploadProps) {
                 {formatFileSize(fileInfo.size)} · {fileInfo.rows} rows loaded
               </p>
             </div>
+
+            {/* Bin/Trash button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClearFile}
+              className="shrink-0 rounded-full bg-white/10 text-white/80 hover:bg-red-500/20 hover:text-red-400 transition-all duration-200"
+              title="Clear file"
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       )}
 
-      {isImporting && (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white/80 backdrop-blur-xl">
-          Reading spreadsheet and normalizing rows...
-        </div>
-      )}
+      {/* Error state with retry option */}
+      {error && !isImporting && (
+        <div className="mt-6 rounded-3xl border border-red-500/30 bg-red-500/10 p-5 shadow-2xl backdrop-blur-xl">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/20">
+              <FileSpreadsheet className="h-6 w-6 text-red-300" />
+            </div>
 
-      {error && (
-        <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 backdrop-blur-xl">
-          {error}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-red-200 sm:text-base">
+                Upload Failed
+              </p>
+              <p className="mt-1 text-xs text-red-200/80 sm:text-sm">{error}</p>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRetry}
+              className="shrink-0 rounded-full bg-white/10 text-white hover:bg-white/20"
+            >
+              Try Again
+            </Button>
+          </div>
         </div>
       )}
     </div>

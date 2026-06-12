@@ -28,4 +28,17 @@ export const api = {
 
     return res.json();
   },
+  deleteAllUsers: async (): Promise<any> => {
+    const res = await fetch(`${API_BASE}/users`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      const error = await res.text();
+      throw new Error(error || "Failed to delete all users");
+    }
+  },
 };
